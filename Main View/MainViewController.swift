@@ -6,6 +6,7 @@ The view controller that selects an image and makes a prediction using Vision an
 */
 
 import UIKit
+import SwiftUI
 
 class MainViewController: UIViewController {
     var firstRun = true
@@ -14,7 +15,7 @@ class MainViewController: UIViewController {
     let imagePredictor = ImagePredictor()
 
     /// The largest number of predictions the main view controller displays the user.
-    let predictionsToShow = 2
+    static var predictionsToShow = 2
 
     // MARK: Main storyboard outlets
     @IBOutlet weak var startupPrompts: UIStackView!
@@ -27,12 +28,14 @@ extension MainViewController {
     /// The method the storyboard calls when the user one-finger taps the screen.
     @IBAction func singleTap() {
         // Show options for the source picker only if the camera is available.
-        guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
-            present(photoPicker, animated: false)
-            return
-        }
-
-        present(cameraPicker, animated: false)
+//        guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
+//            present(photoPicker, animated: false)
+//            return
+//        }
+//
+//        present(cameraPicker, animated: false)
+//        present(photoPicker, animated: false)
+        print("tapped")
     }
 
     /// The method the storyboard calls when the user two-finger taps the screen.
@@ -96,13 +99,13 @@ extension MainViewController {
     /// The method the Image Predictor calls when its image classifier model generates a prediction.
     /// - Parameter predictions: An array of predictions.
     /// - Tag: imagePredictionHandler
-    private func imagePredictionHandler(_ predictions: [ImagePredictor.Prediction]?) {
+    private func imagePredictionHandler(_ predictions: [ImagePredictor.Prediction]?, _ url: URL? = nil) {
         guard let predictions = predictions else {
             updatePredictionLabel("No predictions. (Check console log.)")
             return
         }
 
-        let formattedPredictions = formatPredictions(predictions)
+        let formattedPredictions = MainViewController.formatPredictions(predictions)
 
         let predictionString = formattedPredictions.joined(separator: "\n")
         updatePredictionLabel(predictionString)
@@ -111,7 +114,7 @@ extension MainViewController {
     /// Converts a prediction's observations into human-readable strings.
     /// - Parameter observations: The classification observations from a Vision request.
     /// - Tag: formatPredictions
-    private func formatPredictions(_ predictions: [ImagePredictor.Prediction]) -> [String] {
+    static func formatPredictions(_ predictions: [ImagePredictor.Prediction]) -> [String] {
         // Vision sorts the classifications in descending confidence order.
         let topPredictions: [String] = predictions.prefix(predictionsToShow).map { prediction in
             var name = prediction.classification

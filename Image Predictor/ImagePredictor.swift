@@ -7,6 +7,7 @@ Makes predictions from images using the MobileNet model.
 
 import Vision
 import UIKit
+import SwiftUI
 
 /// A convenience class that makes image classification predictions.
 ///
@@ -57,10 +58,12 @@ class ImagePredictor {
         ///
         /// The prediction string doesn't include the % symbol in the string.
         let confidencePercentage: String
+        
+        let url: URL? = nil
     }
 
     /// The function signature the caller must provide as a completion handler.
-    typealias ImagePredictionHandler = (_ predictions: [Prediction]?) -> Void
+    typealias ImagePredictionHandler = (_ predictions: [Prediction]?, _ url: URL?) -> Void
 
     /// A dictionary of prediction handler functions, each keyed by its Vision request.
     private var predictionHandlers = [VNRequest: ImagePredictionHandler]()
@@ -74,6 +77,33 @@ class ImagePredictor {
 
         imageClassificationRequest.imageCropAndScaleOption = .centerCrop
         return imageClassificationRequest
+    }
+    
+    private func createImageClassificationRequest(_ url: URL) -> VNImageURLRequest {
+        // Create an image classification request with an image classifier model.
+
+        let imageClassificationRequest = VNImageURLRequest(url: url, model: ImagePredictor.imageClassifier,
+                                                         completionHandler: visionRequestHandler)
+
+        imageClassificationRequest.imageCropAndScaleOption = .centerCrop
+        return imageClassificationRequest
+    }
+    
+    func makePredictions(_ url: URL, _ photo: UIImage, completionHandler: @escaping ImagePredictionHandler) throws {
+        let orientation = CGImagePropertyOrientation(photo.imageOrientation)
+
+        guard let photoImage = photo.cgImage else {
+            fatalError("Photo doesn't have underlying CGImage.")
+        }
+
+        let imageClassificationRequest = createImageClassificationRequest(url)
+        predictionHandlers[imageClassificationRequest] = completionHandler
+
+        let handler = VNImageRequestHandler(cgImage: photoImage, orientation: orientation)
+        let requests: [VNRequest] = [imageClassificationRequest]
+
+        // Start the image classification request.
+        try handler.perform(requests)
     }
 
     /// Generates an image classification prediction for a photo.
@@ -111,11 +141,15 @@ class ImagePredictor {
 
         // Start with a `nil` value in case there's a problem.
         var predictions: [Prediction]? = nil
+        var url: URL? = nil
+        if request is VNImageURLRequest {
+            url = (request as! VNImageURLRequest).url
+        }
 
         // Call the client's completion handler after the method returns.
         defer {
             // Send the predictions back to the client.
-            predictionHandler(predictions)
+            predictionHandler(predictions, url)
         }
 
         // Check for an error first.
@@ -144,6 +178,48 @@ class ImagePredictor {
             // Convert each observation into an `ImagePredictor.Prediction` instance.
             Prediction(classification: observation.identifier,
                        confidencePercentage: observation.confidencePercentageString)
+        }
+    }
+    
+    class VNImageURLRequest: VNCoreMLRequest {
+        let url: URL
+        
+        init(url: URL, model: VNCoreMLModel, completionHandler: VNRequestCompletionHandler? = nil) {
+            self.url = url
+            super.init(model: model, completionHandler: completionHandler)
+        }
+    }
+}
+
+extension View {
+// This function changes our View to UIView, then calls another function
+// to convert the newly-made UIView to a UIImage.
+    public func asUIImage() -> UIImage {
+        let controller = UIHostingController(rootView: self)
+        
+ // Set the background to be transparent incase the image is a PNG, WebP or (Static) GIF
+        controller.view.backgroundColor = .clear
+        
+        controller.view.frame = CGRect(x: 0, y: CGFloat(Int.max), width: 1, height: 1)
+        UIApplication.shared.windows.first!.rootViewController?.view.addSubview(controller.view)
+        
+        let size = controller.sizeThatFits(in: UIScreen.main.bounds.size)
+        controller.view.bounds = CGRect(origin: .zero, size: size)
+        controller.view.sizeToFit()
+        
+// here is the call to the function that converts UIView to UIImage: `.asUIImage()`
+        let image = controller.view.asUIImage()
+        controller.view.removeFromSuperview()
+        return image
+    }
+}
+
+extension UIView {
+// This is the function to convert UIView to UIImage
+    public func asUIImage() -> UIImage {
+        let renderer = UIGraphicsImageRenderer(bounds: bounds)
+        return renderer.image { rendererContext in
+            layer.render(in: rendererContext.cgContext)
         }
     }
 }
