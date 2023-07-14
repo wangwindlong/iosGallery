@@ -17,9 +17,6 @@ class Item: Identifiable {
 
 }
 
-class ImageEntity {
-    
-}
 
 extension Item: Equatable {
     static func ==(lhs: Item, rhs: Item) -> Bool {

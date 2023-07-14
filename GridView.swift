@@ -3,14 +3,18 @@ See the License.txt file for this sample’s licensing information.
 */
 
 import SwiftUI
+import AlertToast
 
 @available(iOS 15.0, *)
 struct GridView: View {
     @EnvironmentObject var dataModel: DataModel
 
     private static let initialColumns = 3
+    @State private var message = "toast"
     @State private var isAddingPhoto = false
     @State private var isEditing = false
+    @State private var showToast = false
+    
 
     @State private var gridColumns = Array(repeating: GridItem(.flexible()), count: initialColumns)
     @State private var numColumns = initialColumns
@@ -63,7 +67,10 @@ struct GridView: View {
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 Button(isEditing ? "Done" : "Edit") {
-                    withAnimation { isEditing.toggle() }
+                    withAnimation {
+                        isEditing.toggle()
+                        showToast.toggle()
+                    }
                 }
             }
             ToolbarItem(placement: .navigationBarTrailing) {
@@ -74,8 +81,25 @@ struct GridView: View {
                 }
                 .disabled(isEditing)
             }
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button("开始") {
+                    showToast = true
+                }
+            }
+        }
+        .toast(isPresenting: $showToast){
+            // `.alert` is the default displayMode
+            AlertToast(type: .regular, title: "点击了编辑！！！")
+            
+            //Choose .hud to toast alert from the top of the screen
+            //AlertToast(displayMode: .hud, type: .regular, title: "Message Sent!")
+            
+            //Choose .banner to slide/pop alert from the bottom of the screen
+            //AlertToast(displayMode: .banner(.slide), type: .regular, title: "Message Sent!")
         }
     }
+    
+    
 }
 
 @available(iOS 15.0, *)

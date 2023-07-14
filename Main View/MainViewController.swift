@@ -7,9 +7,11 @@ The view controller that selects an image and makes a prediction using Vision an
 
 import UIKit
 import SwiftUI
+import Photos
 
 class MainViewController: UIViewController {
     var firstRun = true
+    
 
     /// A predictor instance that uses Vision and Core ML to generate prediction strings from a photo.
     let imagePredictor = ImagePredictor()
@@ -128,5 +130,38 @@ extension MainViewController {
         }
 
         return topPredictions
+    }
+}
+
+extension MainViewController {
+    override func viewDidLoad() {
+        requestPermission()
+    }
+    
+    func loadPhotos() {
+        
+    }
+    
+    func requestPermission() {
+        PHPhotoLibrary.requestAuthorization { status in
+            switch status {
+            case .authorized:
+                // 用户已授权访问相册
+                // 在这里执行你的相册操作代码
+                self.loadPhotos()
+                break
+            case .denied, .restricted:
+                // 用户拒绝或限制了访问相册的权限
+                // 在这里给出相应的提示或处理逻辑
+                break
+            case .notDetermined:
+                // 用户还没有做出选择，可以在这里进行相应的处理
+                break
+            case .limited:
+                break
+            @unknown default:
+                break
+            }
+        }
     }
 }
